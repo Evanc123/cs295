@@ -1,4 +1,3 @@
-"""Utilities for parsing PTB text files."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -31,22 +30,10 @@ def _file_to_word_ids(filename, word_to_id):
   return [word_to_id[word] for word in data if word in word_to_id]
 
 
-def ptb_raw_data(data_path=None):
-  """Load PTB raw data from data directory "data_path".
-  Reads PTB text files, converts strings to integer ids,
-  and performs mini-batching of the inputs.
-  The PTB dataset comes from Tomas Mikolov's webpage:
-  http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz
-  Args:
-    data_path: string path to the directory where simple-examples.tgz has
-      been extracted.
-  Returns:
-    tuple (train_data, valid_data, test_data, vocabulary)
-    where each of the data objects can be passed to PTBIterator.
-  """
+def raw_data(data_path=None):
 
-  train_path = os.path.join("ptb.train.txt")
-  test_path = os.path.join("ptb.test.txt")
+  train_path = os.path.join("train.txt")
+  test_path = os.path.join("test.txt")
   word_to_id = _build_vocab(train_path)
   train_data = _file_to_word_ids(train_path, word_to_id)
   test_data = _file_to_word_ids(test_path, word_to_id)
@@ -69,7 +56,7 @@ def batch_gen(raw_data, batch_size):
 
 
 
-class LanguageModel(object):
+class EmbeddingModel(object):
 
     def __init__(self, sess, vocab):
 
@@ -110,7 +97,6 @@ class LanguageModel(object):
 
     def train_step(self, sess, feed_dict):
 
-
         cost, _ = sess.run([self.cost, self.train_op], feed_dict=feed_dict)
         return cost 
 
@@ -121,15 +107,8 @@ def main():
 
     sess = tf.InteractiveSession()
 
-    
-
-    train_data, test_data, vocab, vocab_len = ptb_raw_data()
-
-
-    for x, y in batch_gen(test_data, len(test_data)):
-        print(len(x), len(y))
-
-    model = LanguageModel(sess, vocab)
+    train_data, test_data, vocab, vocab_len = raw_data()
+    model = EmbeddingModel(sess, vocab)
 
     sess.run(tf.initialize_all_variables())
 
@@ -140,51 +119,13 @@ def main():
             cost = model.train_step(sess, feed_dict={model.inpt:x, model.out:y})
             count += 1
             if (count % 100) == 0:
-                print("Count: %d, Perplex: %d" % (count, np.exp(cost)))
+                print("Count: %d, Train Perplexity: %d" % (count, np.exp(cost)))
 
             if (count % 1000) == 0:
                 for foo, bar in batch_gen(test_data, len(test_data)):
                     perplexity = sess.run(model.perplexity, 
                         feed_dict={model.inpt:test_data[:-1], model.out:test_data[1:]})
-                    print("test perplexity %d" % perplexity)
+                    print("Test Perplexity %d" % perplexity)
 
-
-    
 main()
 
-
-
-
-
-
-
-
-
-"""
-
-
-Input: 
-	Batchsize number of words out of sequence 
-
-Output: 
-	Same Batchsize number of words out of sequences shifted by one 
-
-
-embedding = tf.get_variable(
-          "embedding", [vocab_size, size], dtype=data_type())
-      inputs = tf.nn.embedding_lookup(embedding, input_.input_data)
-
-W2 = tf.vriable 
-
-h1 = tf.relue(tf.matmul(embd, w1) + b1) 
-
-h2 = tf.matmul(h1, w2) + b2) 
-
-
-tf nn sparse softmax cross entropy with logits( h2, )
- 
-h2 =logits 
-
-
-Perplexity = (step * 1.0 / model.input.epoch_size, np.exp(costs / iters),
-""" 
